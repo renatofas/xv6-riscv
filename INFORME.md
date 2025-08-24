@@ -17,9 +17,9 @@ eran bastante claros con el video.
 Los comandos se ejecutaron correctamente en xv6.
 
 ## 4. Evidencia
-![cap1](docs/captura_renato_1.png)
-![cap2](docs/captura_renato_2.png)
-![cap3](docs/captura_renato_3.png)
+![cap1](captura_renato_1.png)
+![cap2](captura_renato_2.png)
+![cap3](captura_renato_3.png)
 
 ## 5. Enlace de entrega
 https://github.com/renatofas/xv6-riscv/tree/renato  
