@@ -201,6 +201,7 @@ $ demo
 ```
 
 **Salida esperada:**
+![cap1](captura_renato_1.png)
 ![Salida esperada del scheduler](salida_demo.png)
 ```
 ---
