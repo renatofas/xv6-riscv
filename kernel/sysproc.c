@@ -98,3 +98,19 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+// nueva funcion de tickets
+uint64
+sys_settickets(void)
+{
+  int n;
+
+  // En esta versión, argint no retorna int: solo llena 'n'
+  argint(0, &n);
+
+  if (n < 1)
+    n = 1;
+
+  myproc()->tickets = n;
+  return 0;
+}
+

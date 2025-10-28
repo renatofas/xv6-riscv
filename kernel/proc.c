@@ -145,8 +145,17 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
-
+  /* Lottery Scheduling: inicialización por defecto */
+  p->tickets    = 100;  // mínimo 1 según la tarea
+  p->run_slices = 0;    // contador de veces elegido
   return p;
+}
+// --- RNG simple para el scheduler (LCG) ---
+static unsigned long long kseed = 88172645463393265ULL;
+static unsigned int krand(void) {
+  // Linear Congruential Generator (suficiente para lotería)
+  kseed = kseed * 1103515245ULL + 12345ULL;
+  return (unsigned int)((kseed >> 16) & 0x7fffffffU);
 }
 
 // free a proc structure and the data hanging from it,
@@ -350,6 +359,9 @@ exit(int status)
   acquire(&p->lock);
 
   p->xstate = status;
+  printf("PID=%d terminó: tickets=%d, run_slices=%d\n",
+          p->pid, p->tickets, p->run_slices);
+
   p->state = ZOMBIE;
 
   release(&wait_lock);
@@ -418,40 +430,49 @@ wait(uint64 addr)
 void
 scheduler(void)
 {
-  struct proc *p;
   struct cpu *c = mycpu();
-
   c->proc = 0;
+
   for(;;){
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting. Then turn them back off
-    // to avoid a possible race between an interrupt
-    // and wfi.
+    // Habilita interrupciones en CPU
     intr_on();
-    intr_off();
 
-    int found = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
+    // 1) Sumar tickets de RUNNABLE (mínimo 1 por robustez)
+    int total = 0;
+    struct proc *p;
+    for(p = proc; p < &proc[NPROC]; p++){
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+      if(p->state == RUNNABLE){
+        if(p->tickets < 1) p->tickets = 1;
+        total += p->tickets;
       }
       release(&p->lock);
     }
-    if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
-      asm volatile("wfi");
+
+    // 2) Si no hay RUNNABLE, continuar el loop
+    if(total == 0)
+      continue;
+
+    // 3) R en [1, total]
+    int r = (krand() % total) + 1;
+
+    // 4) Recorrer acumulando hasta >= r y ejecutar el “ganador”
+    int acc = 0;
+    for(p = proc; p < &proc[NPROC]; p++){
+      acquire(&p->lock);
+      if(p->state == RUNNABLE){
+        acc += p->tickets;
+        if(acc >= r){
+          p->state = RUNNING;
+          c->proc = p;
+          p->run_slices++;              // contabilidad
+          swtch(&c->context, &p->context);
+          c->proc = 0;
+          release(&p->lock);
+          break;                        // vuelve a la próxima lotería
+        }
+      }
+      release(&p->lock);
     }
   }
 }

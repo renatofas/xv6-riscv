@@ -103,5 +103,7 @@ struct proc {
   struct context context;      // swtch() here to run process
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
-  char name[16];               // Process name (debugging)
+  char name[16];
+  int tickets;       // cantidad de tickets del proceso
+  int run_slices;    // cantidad de veces que fue elegido por el scheduler
 };
