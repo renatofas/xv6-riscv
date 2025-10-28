@@ -202,7 +202,7 @@ $ demo
 
 **Salida esperada:**
 ```
-![Salida esperada del scheduler](./salida_demo.png)
+![Salida esperada del scheduler](salida_demo.png)
 ---
 
 ## Posibles problemas del Lottery Scheduler
