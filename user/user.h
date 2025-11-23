@@ -22,6 +22,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int mrdprotect(void*, int);
+int munrdprotect(void*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

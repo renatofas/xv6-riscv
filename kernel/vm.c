@@ -485,3 +485,79 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
+
+// Remove read permission from len pages starting at addr
+int
+mrdprotect(void *addr, int len)
+{
+  struct proc *p = myproc();
+  pagetable_t pagetable = p->pagetable;
+  uint64 a = (uint64)addr;
+  
+  // Validate parameters
+  if(len <= 0)
+    return -1;
+  
+  if(a % PGSIZE != 0)
+    return -1;
+  
+  // Modify PTEs for each page
+  for(int i = 0; i < len; i++){
+    uint64 va = a + i * PGSIZE;
+    pte_t *pte = walk(pagetable, va, 0);
+    
+    if(pte == 0)
+      return -1;
+    
+    if((*pte & PTE_V) == 0)
+      return -1;
+    
+    if((*pte & PTE_U) == 0)
+      return -1;
+    
+    // Remove read permission
+    *pte &= ~PTE_R;
+  }
+  
+  // Flush TLB
+  sfence_vma();
+  return 0;
+}
+
+// Restore read permission to len pages starting at addr
+int
+munrdprotect(void *addr, int len)
+{
+  struct proc *p = myproc();
+  pagetable_t pagetable = p->pagetable;
+  uint64 a = (uint64)addr;
+  
+  // Validate parameters
+  if(len <= 0)
+    return -1;
+  
+  if(a % PGSIZE != 0)
+    return -1;
+  
+  // Modify PTEs for each page
+  for(int i = 0; i < len; i++){
+    uint64 va = a + i * PGSIZE;
+    pte_t *pte = walk(pagetable, va, 0);
+    
+    if(pte == 0)
+      return -1;
+    
+    if((*pte & PTE_V) == 0)
+      return -1;
+    
+    if((*pte & PTE_U) == 0)
+      return -1;
+    
+    // Restore read permission
+    *pte |= PTE_R;
+  }
+  
+  // Flush TLB
+  sfence_vma();
+  return 0;
+}
